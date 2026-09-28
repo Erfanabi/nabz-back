@@ -1,0 +1,40 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: nabz-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: nabz
+      POSTGRES_PASSWORD: nabz
+      POSTGRES_DB: nabz
+    ports:
+      - '5432:5432'
+    volumes:
+      - nabz-pg:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U nabz -d nabz']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build: .
+    container_name: nabz-api
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://nabz:nabz@postgres:5432/nabz?schema=public
+      PORT: '3000'
+    env_file:
+      - .env
+    ports:
+      - '3000:3000'
+    volumes:
+      - nabz-storage:/app/storage
+    profiles: ['full']
+
+volumes:
+  nabz-pg:
+  nabz-storage:
